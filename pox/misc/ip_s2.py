@@ -14,7 +14,7 @@ import thread
 from threading import Thread
 import time, datetime
 
-#######################################
+#######################################variable declaration
 
 #########################################################thread example
 class testit(Thread):
