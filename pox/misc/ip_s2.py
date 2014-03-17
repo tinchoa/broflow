@@ -14,7 +14,7 @@ import thread
 from threading import Thread
 import time, datetime
 
-#######################################
+#######################################variable declaration
 
 #########################################################thread example
 class testit(Thread):
@@ -33,6 +33,8 @@ log = core.getLogger()
 ip_honeypot=IPAddr("192.168.0.14")
 mac_honey= EthAddr("00:19:e2:4d:ac:02")
 
+duration_block = 15 #seconds to block flow
+
 
 ###############################output log
 outputLog=open('output.csv', 'a')
@@ -45,32 +47,32 @@ class server_socket(Thread):
 		global received
 		self.sock = None
 		self.status =-1			
-		self.connections = connections						#dpdi of the switch
+		self.connections = connections							#dpdi of the switch
 
 	def run(self):
-		self.sock = socket.socket()         				# Create a socket object
-		host = '192.168.254.254'							# The host is receiving by interface 2
-		port = 12345               							# Reserve a port for your service.
-		self.sock.bind((host, port))        				# Bind to the port
-		self.sock.listen(5)                	 				# Now wait for client connection.
-		while True:											# If this while was on it will never stop
-			client, addr = self.sock.accept()				# Establish connection with client
-			data = client.recv(1024)						# Get data from the client 
-			print 'Message from', addr 						# Print a message confirming 
-			data_treatment = data_trat(data,self.connections)	# Call the thread to work with the data received
-			data_treatment.setDaemon(True)					# Set the thread as a demond
-			data_treatment.start()							# Start the thread
+		self.sock = socket.socket()         					# Create a socket object
+		host = '192.168.254.254'								# The host is receiving by interface 2
+		port = 12345               								# Reserve a port for your service.
+		self.sock.bind((host, port))        					# Bind to the port
+		self.sock.listen(5)                	 					# Now wait for client connection.
+		while True:												# If this while was on it will never stop
+			client, addr = self.sock.accept()					# Establish connection with client
+			data = client.recv(1024)							# Get data from the client 
+			print 'Message from', addr 							# Print a message confirming 
+			data_treatment = data_trat(data,self.connections,addr)	# Call the thread to work with the data received
+			data_treatment.setDaemon(True)						# Set the thread as a demond
+			data_treatment.start()								# Start the thread
 		
-	#client.close()				                			# Close the socket connection  
-															# This close is not working it should be in a function to close the thread
+	#client.close()				                				# Close the socket connection  
+																# This close is not working it should be in a function to close the thread
 
 ###########################thread to treat the data
 class data_trat(Thread):
-	def __init__(self,received,connections):
+	def __init__(self,received,connections,addressSen):
 		Thread.__init__(self)
 		self.received = received
 		self.myconnections = connections
-		#print self.myconnections		
+		self.addressSensor = addressSen
 	
 
 	def run(self):
@@ -90,32 +92,38 @@ class data_trat(Thread):
 #		print Port
 #		print MAC
 #		print Action_of
-		
-##########getting the domain name for xen
-		##directory= "cd /root/VMs/cfgvms/experimento-sbrc2014 " #virtual machine configuration directory
-		directory= "cd /root/VMs/cfgvms/ " #virtual machine configuration directory
-		cmd= " grep -ri "
-		name= subprocess.check_output(directory  +  "&&"  +  cmd  + MAC, shell=True)
-		aux_name=name.split(".cfg")
-		name=aux_name[0]
-##########here i get the vif 
-		command="xm domid " #getting de domain id
-		vmid=subprocess.check_output(command + name, shell=True) #este 
-		aux_v=vmid.split("\n")#este
-		vmid=aux_v[0]		#este deberian in si o si 
-		#tag1=`ovs-vsctl list port vif$vmid.$ifaceid | grep tag | awk '{print$3}'
-##########here i get the vlan tag
-		proceso= 'ovs-vsctl list port '
-		proceso2= '| grep tag |'
-		proceso3=  " awk  '{print $3}'"
-		vlan_tag = subprocess.check_output(proceso +"vif"+vmid+"."+ifaceid + proceso2 +proceso3 ,shell=True)
-		aux2=vlan_tag.split("\n")
-		vlan_tag=aux2[0]
-		vlan_tag=int(vlan_tag)
-		#		print vlan_tag
-######################################################
+
+####MOMENTANEAMENTE FORA DO AR!!!!! VER COMO VOY A SOLUCIONAR EL PROBLEMA DE PEGAR LA VIF PARA MODIFICAR EL TAG DE VLAN
+
+
+# ##########getting the domain name for xen
+	# 		##directory= "cd /root/VMs/cfgvms/experimento-sbrc2014 " #virtual machine configuration directory
+	# 		directory= "cd /root/VMs/cfgvms/ " #virtual machine configuration directory
+	# 		cmd= " grep -ri "
+	# 		name= subprocess.check_output(directory  +  "&&"  +  cmd  + MAC, shell=True)
+	# 		aux_name=name.split(".cfg")
+	# 		name=aux_name[0]
+	# ##########here i get the vif 
+	# 		command="xm domid " #getting de domain id
+	# 		vmid=subprocess.check_output(command + name, shell=True) #este 
+	# 		aux_v=vmid.split("\n")#este
+	# 		vmid=aux_v[0]		#este deberian in si o si 
+	# 		#tag1=`ovs-vsctl list port vif$vmid.$ifaceid | grep tag | awk '{print$3}'
+	# ##########here i get the vlan tag
+	# 		proceso= 'ovs-vsctl list port '
+	# 		proceso2= '| grep tag |'
+	# 		proceso3=  " awk  '{print $3}'"
+	# 		vlan_tag = subprocess.check_output(proceso +"vif"+vmid+"."+ifaceid + proceso2 +proceso3 ,shell=True)
+	# 		aux2=vlan_tag.split("\n")
+	# 		vlan_tag=aux2[0]
+	# 		vlan_tag=int(vlan_tag)
+	# 		#		print vlan_tag
+	######################################################
+
+
+
 		my_match = of.ofp_match(dl_type = 0x800, # this is to catch the flux i want to move
-			dl_vlan=vlan_tag,
+#			dl_vlan=vlan_tag, #ACA TB TENGO Q SACAR
 			#dl_vlan = 830,			
 			dl_dst= EthAddr(MAC),
 			#nw_src=IPAddr(IP_attack),
@@ -129,24 +137,24 @@ class data_trat(Thread):
 	
 #######################################Kill the old flux##################################
 ######################################Drop################################################
-		# def dropping (duration=None): 
-		# 	print "dropping"
-		# 	if duration is not None:
-		# 		if not isinstance(duration, tuple):
-		# 			duration = (duration,duration)
-		# 		msg.idle_timeout = duration[0] #this made the flow go back after the specified time
-		# 		msg.hard_timeout = duration[1]
-		def dropping (duration=None):
+		def dropping (duration=duration_block): #this is the time that mflow will be blocked in seconds
 			msg.priority=65535
 			msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = 831)) 		# modify the vlan id from the 830 to 831 
+			if duration is not None:
+				if not isinstance(duration, tuple):
+					duration = (duration,duration)
+		 		msg.idle_timeout = duration[0] #this made the flow go back after the specified time
+		 		msg.hard_timeout = duration[1]
 			print "dropping packets from ", IP_attack 	
 			ts = time.time() #create time stamp
 			st = datetime.datetime.fromtimestamp(ts).strftime('%d-%m-%Y %H:%M:%S')	#human format time stamp	
-			outputLog.write("Flow Blocked "+ IP_attack +"-->" + IP_dst +' '+ str(st) +'\n')# creating the log 
+			outputLog.write("Flow Blocked "+ IP_attack +"-->" + IP_dst +' '+ str(st) +" detected by "+self.addressSensor[0]+'\n')# creating the log #see how to create a log style
 			for connection in self.myconnections:
 				connection.send(msg)  													#send the msg to the switch
 				connection.send(of.ofp_stats_request(body=of.ofp_flow_stats_request())) #getting the flux stats
-				print "MSG sent to switches"
+				print "MSG sent to switches!"
+
+
 ####################################Honeypot#####################################################
 		def honeypot():
 			print "Honeypot"	
@@ -155,7 +163,7 @@ class data_trat(Thread):
 			msg.actions.append(of.ofp_action_nw_addr.set_dst(ip_honeypot))  # action to send the flux to the honey_pot
 			msg.actions.append(of.ofp_action_output(port = 6)) 			# which port the honeypot is connected 
 			ts = time.time()
-			st = datetime.datetime.fromtimestamp(ts).strftime('%d-%m-%Y %H:%M:%S')		
+			st = datetime.datetime.fromtimestamp(ts).strftime('%H:%M:%S %d-%m-%Y')		
 			outputLog.write("Flow Deviated "+ IP_attack +"-->" + IP_dst +' '+ str(st) +'\n')
 																		# see how i can get this port by python
 			for connection in self.myconnections:
