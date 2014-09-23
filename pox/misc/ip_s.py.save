@@ -1,0 +1,132 @@
+from pox.core import core
+import pox.openflow.libopenflow_01 as of
+from pox.lib.revent import *
+from pox.lib.util import dpidToStr
+from pox.lib.addresses import EthAddr, IPAddr
+from collections import namedtuple
+import pox.lib.packet as pkt
+import os
+import string,sys,socket,json, subprocess
+
+log = core.getLogger()
+
+
+
+#ip_dest = str(sys.argv[1])
+
+class testip():
+	def __init__ (self,ipe):
+	
+		self.ipe=ipe
+		print "IP:", self.ipe
+
+	def foo (self):
+		print "IP2:", self.ipe
+
+## i got this from antonio and ulysses
+def listarFluxosIp(event):
+	global fluxosIp
+	fluxosIp = []
+	for fluxo in event.stats:
+		print 'Fluxo Instalado'
+		print fluxo.match
+		if fluxo.match.nw_src == IPAddr(ipBro):
+			fluxosIp.append(fluxo.match)
+		print fluxosIp
+
+
+#############################here is the socket server i create####
+
+#!/usr/bin/python           # This is server.py file
+
+#import socket, subprocess,json   # Import socket module, and subprocces to handle json for coded msg
+
+s = socket.socket()         # Create a socket object
+#host = socket.gethostname() # Get local machine name
+
+#host = '192.168.254.17'
+
+host = '192.168.254.254'
+
+#host = 'localhost'
+
+port = 12345                # Reserve a port for your service.
+s.bind((host, port))        # Bind to the port
+
+s.listen(5)                 # Now wait for client connection.
+
+while True:
+
+        c, addr = s.accept()     # Establish connection with client.
+        print 'Message from', addr
+        received = c.recv(1024)
+        if received == "quit":
+                print "Closing..."
+                break
+#       vmid = subprocess.check_output(["xm domainls"])
+
+#        print 'msj',received
+
+        encoded_data = json.loads(received)
+
+        jason=json.dumps(received)
+
+#        print "recibido", received
+
+#        print "Python", encoded_data
+
+#        print "Json", jason
+
+#	c.send('Message received') # just send a message to confirm it was received
+
+	## i think this could be better, i just did it as a normal strin
+	## see if json has something to split the fields inside
+        data=received.split(":") 
+
+        ##getting data from the json python string
+        Interface=data[1]
+        Interface=Interface.split(",")
+
+
+        IP=data[2]
+        IP=IP.split(",")
+
+        Port=data[9]
+	Port=Port.split("}")
+
+        mac=data[8]
+        mac=mac.split(",")
+
+        MAC=data[3]+":"+data[4]+":"+data[5]+":"+data[6]+":"+data[7]+":"+mac[0]
+
+        print Interface[0]
+        print IP[0]
+        print Port[0]
+        print MAC
+
+#        print data
+
+#       data=received.split(":")
+        #print "Interface", jason_dumps(u'\uInterface')]
+        #print "IP",data[2]
+        #print "MAC",data[3]
+        #print "Port",data[4]
+
+c.close()                # Close the connection
+
+##########
+##here i need to got the vif id
+
+#vmid=45
+#ifaceid=2#tag1=`ovs-vsctl list port vif$vmid.$ifaceid | grep tag | awk '{print
+$3}'
+
+
+
+
+####
+
+def launch (ip = "123.233.111.333"):
+  component =  ip("192.168.1.1")
+  core.register("thing", component)
+  core.thing.foo() # prints "MyComponent with arg: spam"

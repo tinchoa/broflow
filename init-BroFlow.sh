@@ -7,4 +7,8 @@ echo controller set at local host 127.0.0.1 port 2266
 
 
 #starting the controler +forwarding +BroFLow
-/home/martin/Pox/pox/pox.py openflow.of_01 --port=2266 forwarding.l2_learning misc.ip_s2
+/root/martin/pox/pox.py openflow.of_01 --port=2266 misc.broflow forwarding.l2_learning
+
+
+
+
